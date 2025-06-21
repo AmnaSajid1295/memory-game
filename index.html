@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhanced Memory Flip Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      background: #f2f2f2;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    .controls {
+      margin: 20px auto;
+    }
+
+    #game-board {
+      width: 375px;
+      margin: 20px auto;
+      display: grid;
+      grid-template-columns: repeat(5, 70px);
+      gap: 10px;
+    }
+
+    .card {
+      width: 70px;
+      height: 70px;
+      background-color: #444;
+      font-size: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      border-radius: 10px;
+      user-select: none;
+      transition: all 0.4s ease;
+      color: transparent;
+    }
+
+    .card.flipped {
+      background-color: #fff;
+      color: #444;
+    }
+
+    .player-stats {
+      margin: 10px auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Memory Flip Game</h1>
+
+  <div class="controls">
+    <label>Number of Players:
+      <select id="player-count">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </label>
+    <button id="start-btn">Start Game</button>
+    <label>Theme:
+      <select id="theme-select">
+        <option value="fruits">Fruits</option>
+        <option value="animals">Animals</option>
+        <option value="shapes">Shapes</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="player-stats" class="player-stats"></div>
+  <div class="game-board" id="game-board"></div>
+
+  <script>
+    const board = document.getElementById("game-board");
+    const startBtn = document.getElementById("start-btn");
+    const themeSelect = document.getElementById("theme-select");
+    const playerCountSelect = document.getElementById("player-count");
+    const playerStats = document.getElementById("player-stats");
+
+    const themes = {
+      fruits: ['🍎','🍌','🍓','🍇','🍍','🥝','🍑','🍒','🍊','🍈'],
+      animals: ['🐶','🐱','🐭','🐰','🦊','🐻','🐼','🐨','🦁','🐸'],
+      shapes: ['🔴','🔺','🔵','⬛','⬜','🔶','🔷','🔳','🔘','🔲']
+    };
+
+    let cards = [];
+    let flipped = [];
+    let matched = [];
+    let currentPlayer = 0;
+    let playerCount = 1;
+    let scores = [];
+    let missed = [];
+
+    startBtn.addEventListener("click", startGame);
+    themeSelect.addEventListener("change", startGame);
+
+    function startGame() {
+      board.innerHTML = "";
+      playerStats.innerHTML = "";
+      flipped = [];
+      matched = [];
+      currentPlayer = 0;
+      playerCount = parseInt(playerCountSelect.value);
+      scores = new Array(playerCount).fill(0);
+      missed = new Array(playerCount).fill(0);
+
+      const theme = themeSelect.value;
+      const icons = themes[theme];
+      cards = [...icons, ...icons].sort(() => 0.5 - Math.random());
+
+      updatePlayerStats();
+
+      cards.forEach((icon, index) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.icon = icon;
+        card.dataset.index = index;
+        board.appendChild(card);
+
+        card.addEventListener("click", () => handleCardClick(card));
+      });
+    }
+
+    function handleCardClick(card) {
+      if (flipped.length >= 2 || card.classList.contains("flipped") || matched.includes(card)) return;
+
+      card.classList.add("flipped");
+      card.innerText = card.dataset.icon;
+      flipped.push(card);
+
+      if (flipped.length === 2) {
+        const [card1, card2] = flipped;
+        if (card1.dataset.icon === card2.dataset.icon) {
+          matched.push(card1, card2);
+          scores[currentPlayer]++;
+          flipped = [];
+          updatePlayerStats();
+          if (matched.length === cards.length) {
+            const maxScore = Math.max(...scores);
+            const winners = scores
+              .map((score, index) => ({ player: index + 1, score }))
+              .filter(p => p.score === maxScore)
+              .map(p => `Player ${p.player}`)
+              .join(' & ');
+            setTimeout(() => alert(`🏆 Game Over! ${winners} win(s)!`), 300);
+          } else {
+            currentPlayer = (currentPlayer + 1) % playerCount;
+            updatePlayerStats();
+          }
+        } else {
+          setTimeout(() => {
+            card1.classList.remove("flipped");
+            card2.classList.remove("flipped");
+            card1.innerText = "";
+            card2.innerText = "";
+            flipped = [];
+            missed[currentPlayer]++;
+            currentPlayer = (currentPlayer + 1) % playerCount;
+            updatePlayerStats();
+          }, 800);
+        }
+      }
+    }
+
+    function updatePlayerStats() {
+      playerStats.innerHTML = "";
+      for (let i = 0; i < playerCount; i++) {
+        const stat = document.createElement("p");
+        stat.textContent = `Player ${i + 1}: ${scores[i]} matches, ${missed[i]} missed ${i === currentPlayer ? "⬅️" : ""}`;
+        playerStats.appendChild(stat);
+      }
+    }
+  </script>
+</body>
+</html>
